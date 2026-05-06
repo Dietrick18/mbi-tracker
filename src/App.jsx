@@ -4,6 +4,12 @@ import { useState, useRef, useEffect } from "react";
 // 🔧 GANTI URL INI DENGAN URL GOOGLE APPS SCRIPT KAMU
 // Cara dapat URL: script.google.com → Deploy → Web App → Copy URL
 const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyZ_j914rzGxWlWav1ofyAjdHvT8WinOWHBUnkaRuWdJCEpk2gRm5S5g7YADroHsq4rEA/exec";
+
+// ═══════════════════════════════════════════════════════════
+// ☁️ CLOUDINARY CONFIG - untuk upload foto
+const CLOUDINARY_CLOUD = "djsrywda5";
+const CLOUDINARY_PRESET = "mbi_posm"; // unsigned preset - dibuat di Cloudinary dashboard
+// ═══════════════════════════════════════════════════════════
 // ═══════════════════════════════════════════════════════════
 
 const BRANDS = ["Kawan Senja"];
@@ -194,26 +200,35 @@ async function postToSheets(payload) {
   await new Promise(r => setTimeout(r, 2000));
 }
 
-// Upload foto ke Google Drive via POST
+// Upload foto ke Cloudinary (no CORS issue)
 async function uploadPhotoToDrive(photoBase64, fileName, mimeType) {
   try {
     const base64Data = photoBase64.split(',')[1];
-    if (!base64Data || base64Data.length > 700000) {
+    if (!base64Data) return '';
+
+    // Compress if too large
+    const sizeKB = Math.round(base64Data.length * 0.75 / 1024);
+    if (sizeKB > 10000) {
+      console.warn('Photo too large:', sizeKB, 'KB');
       return '';
     }
-    const body = JSON.stringify({
-      action: 'uploadPhoto',
-      fileName: fileName || 'photo.jpg',
-      mimeType: mimeType || 'image/jpeg',
-      data: base64Data,
-    });
-    await fetch(GOOGLE_SCRIPT_URL, {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'text/plain' },
-      body: body,
-    });
-    return 'Foto di Drive';
+
+    const formData = new FormData();
+    formData.append('file', photoBase64);
+    formData.append('upload_preset', CLOUDINARY_PRESET);
+    formData.append('folder', 'MBI_POSM');
+    formData.append('public_id', fileName.replace(/\.[^/.]+$/, '') + '_' + Date.now());
+
+    const res = await fetch(
+      `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`,
+      { method: 'POST', body: formData }
+    );
+    const data = await res.json();
+    if (data.secure_url) {
+      return data.secure_url;
+    }
+    console.error('Cloudinary error:', data);
+    return '';
   } catch(e) {
     console.error('Photo upload failed:', e);
     return '';
