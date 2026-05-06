@@ -3,7 +3,7 @@ import { useState, useRef, useEffect } from "react";
 // ═══════════════════════════════════════════════════════════
 // 🔧 GANTI URL INI DENGAN URL GOOGLE APPS SCRIPT KAMU
 // Cara dapat URL: script.google.com → Deploy → Web App → Copy URL
-const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyCDVi2xRRm-h3AHf4r61Qh5d-1GK2qSvSHj3Z34abN9owliE4b4lfJ-V5rgE0SQ39Rlg/exec";
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyZ_j914rzGxWlWav1ofyAjdHvT8WinOWHBUnkaRuWdJCEpk2gRm5S5g7YADroHsq4rEA/exec";
 // ═══════════════════════════════════════════════════════════
 
 const BRANDS = ["Bintang","Heineken","Bintang Zero","Amstel","Tiger","Guinness"];
