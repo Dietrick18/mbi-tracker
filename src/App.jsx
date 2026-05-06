@@ -185,8 +185,39 @@ async function postToSheets(payload) {
   await new Promise(r => setTimeout(r, 2000));
 }
 
+// Upload foto ke Google Drive
+async function uploadPhotoToDrive(photoBase64, fileName, mimeType) {
+  try {
+    // Extract base64 data only
+    const base64Data = photoBase64.split(',')[1];
+    const params = new URLSearchParams({
+      action: 'uploadPhoto',
+      fileName: fileName,
+      mimeType: mimeType || 'image/jpeg',
+      data: base64Data,
+      t: Date.now(),
+    });
+    const res = await fetch(GOOGLE_SCRIPT_URL + '?' + params.toString(), {
+      method: 'GET', mode: 'cors',
+    });
+    const result = await res.json();
+    return result.url || '';
+  } catch(e) {
+    console.error('Photo upload failed:', e);
+    return '';
+  }
+}
+
 async function saveToSheets(data) {
-  await postToSheets({ action:"add", ...data });
+  // Upload photos first if any
+  let photoUrl = '';
+  if (data.photos && data.photos.length > 0) {
+    const photo = data.photos[0];
+    const mimeType = photo.url.split(';')[0].split(':')[1];
+    const fileName = photo.name || (data.outlet + '_' + data.salesRep + '_' + data.date + '.jpg');
+    photoUrl = await uploadPhotoToDrive(photo.url, fileName, mimeType);
+  }
+  await postToSheets({ action:'add', ...data, photoUrl });
 }
 
 async function updateInSheets(data) {
