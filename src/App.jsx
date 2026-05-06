@@ -163,7 +163,7 @@ async function fetchFromSheets() {
   }));
 }
 
-// POST via URL params (GET request) to avoid CORS
+// Send via GET with no-cors to avoid CORS preflight
 async function postToSheets(payload) {
   const params = new URLSearchParams({
     action: payload.action,
@@ -180,8 +180,9 @@ async function postToSheets(payload) {
   });
   await fetch(GOOGLE_SCRIPT_URL + "?" + params.toString(), {
     method: "GET",
-    mode: "cors",
+    mode: "no-cors",
   });
+  await new Promise(r => setTimeout(r, 2000));
 }
 
 async function saveToSheets(data) {
