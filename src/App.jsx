@@ -194,23 +194,26 @@ async function postToSheets(payload) {
   await new Promise(r => setTimeout(r, 2000));
 }
 
-// Upload foto ke Google Drive
+// Upload foto ke Google Drive via POST
 async function uploadPhotoToDrive(photoBase64, fileName, mimeType) {
   try {
-    // Extract base64 data only
     const base64Data = photoBase64.split(',')[1];
-    const params = new URLSearchParams({
+    if (!base64Data || base64Data.length > 700000) {
+      return '';
+    }
+    const body = JSON.stringify({
       action: 'uploadPhoto',
-      fileName: fileName,
+      fileName: fileName || 'photo.jpg',
       mimeType: mimeType || 'image/jpeg',
       data: base64Data,
-      t: Date.now(),
     });
-    const res = await fetch(GOOGLE_SCRIPT_URL + '?' + params.toString(), {
-      method: 'GET', mode: 'cors',
+    await fetch(GOOGLE_SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
+      body: body,
     });
-    const result = await res.json();
-    return result.url || '';
+    return 'Foto di Drive';
   } catch(e) {
     console.error('Photo upload failed:', e);
     return '';
