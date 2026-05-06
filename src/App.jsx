@@ -200,22 +200,46 @@ async function postToSheets(payload) {
   await new Promise(r => setTimeout(r, 2000));
 }
 
+// Compress foto sebelum upload (biar cepat)
+async function compressPhoto(photoBase64, maxSizeKB=600) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      let { width, height } = img;
+      // Max dimension 1280px
+      const maxDim = 1280;
+      if (width > maxDim || height > maxDim) {
+        if (width > height) { height = Math.round(height * maxDim / width); width = maxDim; }
+        else { width = Math.round(width * maxDim / height); height = maxDim; }
+      }
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+      // Compress quality until size OK
+      let quality = 0.8;
+      let result = canvas.toDataURL('image/jpeg', quality);
+      while (result.length * 0.75 / 1024 > maxSizeKB && quality > 0.2) {
+        quality -= 0.1;
+        result = canvas.toDataURL('image/jpeg', quality);
+      }
+      resolve(result);
+    };
+    img.src = photoBase64;
+  });
+}
+
 // Upload foto ke Cloudinary (no CORS issue)
 async function uploadPhotoToDrive(photoBase64, fileName, mimeType) {
   try {
-    const base64Data = photoBase64.split(',')[1];
+    // Compress foto dulu — biar upload lebih cepat
+    const compressed = await compressPhoto(photoBase64, 600);
+    const base64Data = compressed.split(',')[1];
     if (!base64Data) return '';
 
-    // Compress if too large
-    const sizeKB = Math.round(base64Data.length * 0.75 / 1024);
-    if (sizeKB > 10000) {
-      console.warn('Photo too large:', sizeKB, 'KB');
-      return '';
-    }
-
     const formData = new FormData();
-    // Nama file: NamaOutlet_SalesRep_Tanggal
-    formData.append('file', photoBase64);
+    formData.append('file', compressed);
     formData.append('upload_preset', CLOUDINARY_PRESET);
     formData.append('folder', 'MBI_POSM');
     formData.append('public_id', fileName.replace(/\.[^/.]+$/, ''));
@@ -225,9 +249,7 @@ async function uploadPhotoToDrive(photoBase64, fileName, mimeType) {
       { method: 'POST', body: formData }
     );
     const data = await res.json();
-    if (data.secure_url) {
-      return data.secure_url;
-    }
+    if (data.secure_url) return data.secure_url;
     console.error('Cloudinary error:', data);
     return '';
   } catch(e) {
