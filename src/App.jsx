@@ -3,7 +3,7 @@ import { useState, useRef, useEffect } from "react";
 // ═══════════════════════════════════════════════════════════
 // 🔧 GANTI URL INI DENGAN URL GOOGLE APPS SCRIPT KAMU
 // Cara dapat URL: script.google.com → Deploy → Web App → Copy URL
-const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzj3zDO4-AfDra8EQ1SD9Z5ki6jckyp5Xxwzz8kSVesk2uyy6RIa5qWCZx35a6IgP_80Q/exec"; // v4 - latest
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyCDVi2xRRm-h3AHf4r61Qh5d-1GK2qSvSHj3Z34abN9owliE4b4lfJ-V5rgE0SQ39Rlg/exec";
 // ═══════════════════════════════════════════════════════════
 
 const BRANDS = ["Bintang","Heineken","Bintang Zero","Amstel","Tiger","Guinness"];
@@ -148,9 +148,13 @@ const btnGold = { background:"linear-gradient(135deg,#c7a94e,#f0c940)",color:"#1
 const isConfigured = () => GOOGLE_SCRIPT_URL && !GOOGLE_SCRIPT_URL.includes("PASTE_URL");
 
 async function fetchFromSheets() {
-  const res = await fetch(GOOGLE_SCRIPT_URL + "?t=" + Date.now());
+  const res = await fetch(GOOGLE_SCRIPT_URL + "?action=get&t=" + Date.now(), {
+    method: "GET",
+    mode: "cors",
+  });
   const rows = await res.json();
-  return rows.slice(1).map((r,i) => ({
+  if (!Array.isArray(rows)) throw new Error("Invalid response");
+  return rows.slice(1).filter(r => r[1]).map((r,i) => ({
     id: i+1,
     date: r[0]||"", outlet: r[1]||"", address: r[2]||"",
     salesRep: r[3]||"", brand: r[4]||"", posm: r[5]||"",
@@ -159,35 +163,24 @@ async function fetchFromSheets() {
   }));
 }
 
-// CORS-safe POST via hidden form + iframe
-function postToSheets(payload) {
-  return new Promise((resolve) => {
-    const iframeName = "gs_iframe_" + Date.now();
-    const iframe = document.createElement("iframe");
-    iframe.name = iframeName;
-    iframe.style.display = "none";
-    document.body.appendChild(iframe);
-
-    const form = document.createElement("form");
-    form.method = "POST";
-    form.action = GOOGLE_SCRIPT_URL;
-    form.target = iframeName;
-
-    const input = document.createElement("input");
-    input.type = "hidden";
-    input.name = "payload";
-    input.value = JSON.stringify(payload);
-    form.appendChild(input);
-
-    document.body.appendChild(form);
-    form.submit();
-
-    // cleanup after 4s and resolve
-    setTimeout(() => {
-      document.body.removeChild(form);
-      document.body.removeChild(iframe);
-      resolve({ status: "ok" });
-    }, 4000);
+// POST via URL params (GET request) to avoid CORS
+async function postToSheets(payload) {
+  const params = new URLSearchParams({
+    action: payload.action,
+    date: payload.date||"",
+    outlet: payload.outlet||"",
+    address: payload.address||"",
+    salesRep: payload.salesRep||"",
+    brand: payload.brand||"",
+    posm: payload.posm||"",
+    status: payload.status||"",
+    notes: payload.notes||"",
+    rowIndex: payload.rowIndex||"",
+    t: Date.now(),
+  });
+  await fetch(GOOGLE_SCRIPT_URL + "?" + params.toString(), {
+    method: "GET",
+    mode: "cors",
   });
 }
 
