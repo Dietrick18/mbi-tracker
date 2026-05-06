@@ -14,7 +14,17 @@ const CLOUDINARY_PRESET = "mbi_posm"; // unsigned preset - dibuat di Cloudinary 
 
 const BRANDS = ["Kawan Senja"];
 const POSM_TYPES = ["DumBin","Poster Sticker A3","T-Shirt","Sunblind","Sticker Chiller","Tent Card Insertion"];
-const SALES_REPS = ["Andi Pratama","Budi Santoso","Citra Dewi","Deni Kurniawan","Eka Putri","Fajar Nugroho","Gita Rahayu","Hendra Wibowo"];
+const SALES_REPS = [
+  "DSR BALI 1","DSR BALI 3","DSR BALI 4","DSR BALI 5",
+  "DSR BALI 7","DSR BALI 9","DSR BALI 11","DSR BALI 12",
+  "DSR BALI 13","DSR BALI 15","DSR BALI 16","DSR BALI 18",
+  "DSR BALI 21","DSR BALI 22","DSR BALI 24","DSR BALI 25",
+  "DSR BALI 26","DSR BALI 29","DSR BALI 30","DSR BALI 32",
+  "DSR BALI 34","DSR BALI 36","DSR BALI 38","DSR BALI 39",
+  "DSR BALI 40","DSR BALI 41","DSR BALI 42","DSR BALI 43",
+  "DSR BALI 44","DSR BALI 46","DSR BALI 47","DSR BALI 48",
+  "DSR BALI 51",
+];
 const STATUS_OPTIONS = ["Terpasang","Belum Terpasang","Rusak / Perlu Ganti"];
 const CHANNELS = ["WHS (Wholesalers)","TOFT (Traditional Off Trade)","TONT (Traditional On Trade)"];
 const CHANNEL_CLASS = {
@@ -31,7 +41,7 @@ const SM = {
   "Belum Terpasang":    { bg:"#fef9c3",text:"#a16207",dot:"#eab308",icon:"⏳" },
   "Rusak / Perlu Ganti":{ bg:"#fee2e2",text:"#b91c1c",dot:"#ef4444",icon:"⚠️" },
 };
-const emptyForm = { outlet:"",address:"",salesRep:"",brand:"",posm:"",status:"",notes:"",photos:[],date:new Date().toISOString().split("T")[0],channel:"",channelClass:"" };
+const emptyForm = { outlet:"",address:"",salesRep:"",brand:"",posms:[],status:"",notes:"",photos:[],date:new Date().toISOString().split("T")[0],channel:"",channelClass:"" };
 
 /* ── helpers ── */
 function Tag({ children, color="#78630a", bg="#f0e8d0" }) {
@@ -55,27 +65,42 @@ function Spinner() {
 }
 
 /* Photo upload */
-function PhotoUpload({ photos, onChange }) {
+function PhotoUpload({ photos, onChange, posms=[] }) {
   const ref = useRef();
   const add = e => Array.from(e.target.files).forEach(f => {
-    const r = new FileReader(); r.onload = ev => onChange([...photos,{url:ev.target.result,name:f.name}]); r.readAsDataURL(f);
+    const r = new FileReader();
+    r.onload = ev => onChange([...photos,{url:ev.target.result,name:f.name,posmLabel:""}]);
+    r.readAsDataURL(f);
   });
   return (
     <div>
-      <div onClick={()=>ref.current.click()} style={{ border:"2px dashed #c7a94e",borderRadius:12,padding:"18px 12px",textAlign:"center",cursor:"pointer",background:"#fffbf0" }}>
+      <div onClick={()=>ref.current.click()} style={{ border:"2px dashed #c7a94e",borderRadius:12,padding:"16px 12px",textAlign:"center",cursor:"pointer",background:"#fffbf0" }}>
         <div style={{ fontSize:26 }}>📸</div>
         <div style={{ fontWeight:700,fontSize:13,color:"#92400e",marginTop:3 }}>Upload / Foto Bukti POSM</div>
-        <div style={{ fontSize:11,color:"#b45309",marginTop:2 }}>Tap untuk kamera atau galeri</div>
+        <div style={{ fontSize:11,color:"#b45309",marginTop:2 }}>Bisa pilih lebih dari 1 foto sekaligus</div>
         <input ref={ref} type="file" accept="image/*" multiple capture="environment" style={{ display:"none" }} onChange={add} />
       </div>
       {photos.length>0&&(
-        <div style={{ display:"flex",flexWrap:"wrap",gap:8,marginTop:10 }}>
+        <div style={{ display:"flex",flexDirection:"column",gap:8,marginTop:10 }}>
           {photos.map((p,i)=>(
-            <div key={i} style={{ position:"relative" }}>
-              <img src={p.url} alt="" style={{ width:70,height:70,objectFit:"cover",borderRadius:10,border:"2px solid #c7a94e" }} />
-              <button onClick={()=>onChange(photos.filter((_,j)=>j!==i))} style={{ position:"absolute",top:-6,right:-6,background:"#ef4444",color:"#fff",border:"none",borderRadius:"50%",width:20,height:20,fontSize:11,cursor:"pointer",fontWeight:900,lineHeight:"20px",textAlign:"center" }}>×</button>
+            <div key={i} style={{ display:"flex",gap:8,alignItems:"center",background:"#fffbf0",borderRadius:12,padding:"8px 10px",border:"1.5px solid #e5d9b6" }}>
+              <img src={p.url} alt="" style={{ width:58,height:58,objectFit:"cover",borderRadius:8,border:"2px solid #c7a94e",flexShrink:0 }} />
+              <div style={{ flex:1,minWidth:0 }}>
+                <div style={{ fontSize:11,color:"#78630a",fontWeight:700,marginBottom:4 }}>📌 Foto #{i+1} ini untuk POSM:</div>
+                {posms.length>0?(
+                  <select value={p.posmLabel||""} onChange={e=>onChange(photos.map((ph,j)=>j===i?{...ph,posmLabel:e.target.value}:ph))}
+                    style={{ width:"100%",padding:"5px 8px",borderRadius:8,border:"1.5px solid #e5d9b6",fontSize:12,background:"#fff",fontFamily:"'DM Sans',sans-serif" }}>
+                    <option value="">-- Pilih POSM --</option>
+                    {posms.map(pm=><option key={pm}>{pm}</option>)}
+                  </select>
+                ):(
+                  <div style={{ fontSize:11,color:"#a07820",fontStyle:"italic" }}>Pilih POSM dulu di atas</div>
+                )}
+              </div>
+              <button onClick={()=>onChange(photos.filter((_,j)=>j!==i))} style={{ background:"#fee2e2",color:"#ef4444",border:"none",borderRadius:"50%",width:24,height:24,fontSize:13,cursor:"pointer",fontWeight:900,lineHeight:"24px",textAlign:"center",flexShrink:0 }}>×</button>
             </div>
           ))}
+          <div style={{ fontSize:11,color:"#16a34a",fontWeight:600 }}>📸 {photos.length} foto ter-upload</div>
         </div>
       )}
     </div>
@@ -184,7 +209,7 @@ async function postToSheets(payload) {
     address: payload.address||"",
     salesRep: payload.salesRep||"",
     brand: payload.brand||"",
-    posm: payload.posm||"",
+    posm: (payload.posms||[]).join(", ")||"",
     status: payload.status||"",
     notes: payload.notes||"",
     channel: payload.channel||"",
@@ -200,76 +225,113 @@ async function postToSheets(payload) {
   await new Promise(r => setTimeout(r, 2000));
 }
 
-// Compress foto sebelum upload (biar cepat)
-async function compressPhoto(photoBase64, maxSizeKB=600) {
+// ─── PHOTO COMPRESSION ───────────────────────────────────────────
+// Target: max 400KB per foto, max 800px dimension
+// Tujuan: upload cepat (<5 detik), hemat kuota Sales Rep
+// Multiple foto tidak buat aplikasi lambat karena diproses sequential
+async function compressPhoto(photoBase64, maxSizeKB=400) {
   return new Promise((resolve) => {
     const img = new Image();
     img.onload = () => {
       const canvas = document.createElement('canvas');
       let { width, height } = img;
-      // Max dimension 1280px
-      const maxDim = 1280;
+
+      // Step 1: Resize — max 800px (cukup jelas untuk bukti POSM)
+      const maxDim = 800;
       if (width > maxDim || height > maxDim) {
         if (width > height) { height = Math.round(height * maxDim / width); width = maxDim; }
         else { width = Math.round(width * maxDim / height); height = maxDim; }
       }
       canvas.width = width;
       canvas.height = height;
+
+      // Step 2: Draw dengan smoothing untuk kualitas lebih baik
       const ctx = canvas.getContext('2d');
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'medium';
       ctx.drawImage(img, 0, 0, width, height);
-      // Compress quality until size OK
-      let quality = 0.8;
+
+      // Step 3: Compress — mulai dari 0.7, turun sampai target size
+      // 0.7 = cukup jelas untuk POSM proof, jauh lebih kecil dari original
+      let quality = 0.7;
       let result = canvas.toDataURL('image/jpeg', quality);
-      while (result.length * 0.75 / 1024 > maxSizeKB && quality > 0.2) {
-        quality -= 0.1;
+
+      // Max 3 iterasi — cegah infinite loop, tetap cepat
+      let iter = 0;
+      while (result.length * 0.75 / 1024 > maxSizeKB && quality > 0.3 && iter < 3) {
+        quality -= 0.15;
         result = canvas.toDataURL('image/jpeg', quality);
+        iter++;
       }
+
       resolve(result);
     };
+    img.onerror = () => resolve(photoBase64); // fallback jika error
     img.src = photoBase64;
   });
 }
 
-// Upload foto ke Cloudinary (no CORS issue)
+// Upload foto ke Cloudinary — sudah dikompresi dulu
+// Estimasi waktu: ~3-6 detik per foto tergantung sinyal
 async function uploadPhotoToDrive(photoBase64, fileName, mimeType) {
   try {
-    // Compress foto dulu — biar upload lebih cepat
-    const compressed = await compressPhoto(photoBase64, 600);
+    // Compress dulu ke max 400KB sebelum upload
+    const compressed = await compressPhoto(photoBase64, 400);
     const base64Data = compressed.split(',')[1];
     if (!base64Data) return '';
+
+    // Skip jika masih terlalu besar setelah compress (>800KB)
+    const sizeKB = Math.round(base64Data.length * 0.75 / 1024);
+    if (sizeKB > 800) {
+      console.warn('Foto terlalu besar setelah compress:', sizeKB, 'KB — skip');
+      return '';
+    }
 
     const formData = new FormData();
     formData.append('file', compressed);
     formData.append('upload_preset', CLOUDINARY_PRESET);
     formData.append('folder', 'MBI_POSM');
-    formData.append('public_id', fileName.replace(/\.[^/.]+$/, ''));
+    // Nama file: OutletName_RepName_POSMName_Date
+    formData.append('public_id', fileName.replace(/\.[^/.]+$/, '').replace(/[^a-zA-Z0-9_-]/g, '_'));
 
     const res = await fetch(
       `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`,
       { method: 'POST', body: formData }
     );
+
+    if (!res.ok) {
+      console.error('Cloudinary HTTP error:', res.status);
+      return '';
+    }
+
     const data = await res.json();
     if (data.secure_url) return data.secure_url;
-    console.error('Cloudinary error:', data);
+    console.error('Cloudinary error:', data.error?.message);
     return '';
   } catch(e) {
-    console.error('Photo upload failed:', e);
+    console.error('Photo upload failed:', e.message);
     return '';
   }
 }
 
 async function saveToSheets(data) {
-  let photoUrl = '';
+  // Upload semua foto - satu per satu dengan nama sesuai POSM
+  const photoUrls = [];
   if (data.photos && data.photos.length > 0) {
-    const photo = data.photos[0];
-    const mimeType = photo.url.split(';')[0].split(':')[1];
-    // Nama file: NamaOutlet_SalesRep_Tanggal
     const outletClean = (data.outlet||'Outlet').replace(/[^a-zA-Z0-9]/g,'');
     const repClean = (data.salesRep||'Rep').split(' ')[0];
     const dateClean = (data.date||new Date().toISOString().split('T')[0]).replace(/-/g,'');
-    const fileName = outletClean + '_' + repClean + '_' + dateClean + '.jpg';
-    photoUrl = await uploadPhotoToDrive(photo.url, fileName, mimeType);
+    
+    for (let i = 0; i < data.photos.length; i++) {
+      const photo = data.photos[i];
+      const mimeType = photo.url.split(';')[0].split(':')[1];
+      const posmClean = (photo.posmLabel||`POSM${i+1}`).replace(/[^a-zA-Z0-9]/g,'');
+      const fileName = `${outletClean}_${repClean}_${posmClean}_${dateClean}.jpg`;
+      const url = await uploadPhotoToDrive(photo.url, fileName, mimeType);
+      if (url) photoUrls.push(url);
+    }
   }
+  const photoUrl = photoUrls.join(' | ');
   await postToSheets({ action:'add', ...data, photoUrl });
 }
 
@@ -332,11 +394,15 @@ export default function App() {
   const closeForm = ()    => { setShowForm(false); setEditId(null); };
 
   const save = async () => {
-    if (!form.outlet||!form.address||!form.salesRep||!form.brand||!form.posm||!form.status||!form.channel||!form.channelClass) {
+    if (!form.outlet||!form.address||!form.salesRep||!form.brand||!(form.posms&&form.posms.length>0)||!form.status||!form.channel||!form.channelClass) {
       showToast("⚠️ Lengkapi semua field wajib (*)","error"); return;
     }
     setSyncing(true);
-    showToast("⏳ Menyimpan data...","loading",10000);
+    const photoCount = form.photos?.length || 0;
+    const msg = photoCount > 0
+      ? `⏳ Menyimpan + upload ${photoCount} foto... (~${photoCount*5} detik)`
+      : "⏳ Menyimpan data...";
+    showToast(msg, "loading", 60000);
     try {
       if (editId) {
         const item = activations.find(x=>x.id===editId);
@@ -348,7 +414,10 @@ export default function App() {
         setActivations(a=>[...a,newItem]);
       }
       closeForm();
-      showToast(isConfigured()?"✅ Tersimpan ke Google Sheets!":"✅ Tersimpan (lokal)");
+      const successMsg = photoCount > 0
+        ? `✅ Tersimpan! ${photoCount} foto ter-upload ke Cloudinary`
+        : "✅ Tersimpan ke Google Sheets!";
+      showToast(isConfigured()?successMsg:"✅ Tersimpan (lokal)");
       if (isConfigured()) setTimeout(()=>loadFromSheets(),1500);
     } catch(e) {
       showToast("❌ Gagal menyimpan. Coba lagi.","error");
@@ -527,7 +596,9 @@ export default function App() {
                       <div style={{ display:"flex",gap:6,flexWrap:"wrap" }}>
                         <Tag>👤 {item.salesRep.split(" ")[0]}</Tag>
                         <Tag color="#7c3aed" bg="#ede9fe">🍺 {item.brand}</Tag>
-                        <Tag color="#0369a1" bg="#e0f2fe">📌 {item.posm}</Tag>
+                        {(item.posms||[item.posm]).filter(Boolean).map((p,i)=>(
+                          <Tag key={i} color="#0369a1" bg="#e0f2fe">📌 {p}</Tag>
+                        ))}
                         {item.channel&&<Tag color="#0891b2" bg="#cffafe">📡 {item.channel.split(" ")[0]}</Tag>}
                         {item.channelClass&&<Tag color="#059669" bg="#d1fae5">🏷️ {item.channelClass.split(" ")[0]}</Tag>}
                       </div>
@@ -539,8 +610,13 @@ export default function App() {
                           {item.notes&&<span style={{ fontStyle:"italic" }}>💬 {item.notes}</span>}
                         </div>
                         {item.photos?.length>0&&(
-                          <div style={{ display:"flex",gap:6,marginBottom:12,flexWrap:"wrap" }}>
-                            {item.photos.map((p,i)=><img key={i} src={p.url} alt="" style={{ width:66,height:66,objectFit:"cover",borderRadius:10,border:"2px solid #c7a94e" }} />)}
+                          <div style={{ display:"flex",flexDirection:"column",gap:6,marginBottom:12 }}>
+                            {item.photos.map((p,i)=>(
+                              <div key={i} style={{ display:"flex",alignItems:"center",gap:8 }}>
+                                <img src={p.url} alt="" style={{ width:56,height:56,objectFit:"cover",borderRadius:8,border:"2px solid #c7a94e",flexShrink:0 }} />
+                                {p.posmLabel&&<span style={{ fontSize:11,fontWeight:700,color:"#0369a1",background:"#e0f2fe",borderRadius:99,padding:"3px 8px" }}>📌 {p.posmLabel}</span>}
+                              </div>
+                            ))}
                           </div>
                         )}
                         <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:8 }}>
@@ -655,11 +731,38 @@ export default function App() {
             </select>
           </F>
         )}
-        <F label="Jenis POSM *">
-          <select value={form.posm} onChange={e=>setForm(p=>({...p,posm:e.target.value}))} style={iStyle}>
-            <option value="">-- Pilih POSM --</option>
-            {POSM_TYPES.map(o=><option key={o}>{o}</option>)}
-          </select>
+        <F label="Jenis POSM * (pilih semua yang dipasang)">
+          <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+            {POSM_TYPES.map(posm => {
+              const selected = (form.posms||[]).includes(posm);
+              return (
+                <button key={posm} onClick={()=>{
+                  const cur = form.posms||[];
+                  setForm(p=>({...p, posms: selected ? cur.filter(x=>x!==posm) : [...cur, posm]}));
+                }} style={{
+                  background: selected ? "#dcfce7" : "#fff",
+                  border: `2px solid ${selected ? "#22c55e" : "#e5d9b6"}`,
+                  borderRadius:12, padding:"10px 14px",
+                  display:"flex", alignItems:"center", gap:10,
+                  cursor:"pointer", fontFamily:"'DM Sans',sans-serif",
+                  width:"100%", textAlign:"left", transition:"all .15s",
+                }}>
+                  <span style={{
+                    width:22, height:22, borderRadius:6, flexShrink:0,
+                    background: selected ? "#22c55e" : "#f0e8d0",
+                    display:"flex", alignItems:"center", justifyContent:"center",
+                    fontSize:13, fontWeight:900, color:"#fff",
+                  }}>{selected ? "✓" : ""}</span>
+                  <span style={{ fontWeight: selected ? 700 : 400, fontSize:14, color: selected ? "#15803d" : "#1a1200" }}>{posm}</span>
+                </button>
+              );
+            })}
+          </div>
+          {(form.posms||[]).length > 0 && (
+            <div style={{ marginTop:8, fontSize:12, color:"#16a34a", fontWeight:700 }}>
+              ✅ {(form.posms||[]).length} POSM dipilih: {(form.posms||[]).join(", ")}
+            </div>
+          )}
         </F>
         <F label="Status POSM *">
           <div style={{ display:"flex",flexDirection:"column",gap:8 }}>
@@ -674,7 +777,7 @@ export default function App() {
         </F>
         <F label="Tanggal"><input type="date" value={form.date} onChange={e=>setForm(p=>({...p,date:e.target.value}))} style={iStyle} /></F>
         <F label="Catatan"><textarea value={form.notes} onChange={e=>setForm(p=>({...p,notes:e.target.value}))} placeholder="cth: Outlet kooperatif, lokasi strategis" rows={3} style={{ ...iStyle,resize:"none" }} /></F>
-        <F label="📸 Foto Bukti POSM"><PhotoUpload photos={form.photos} onChange={photos=>setForm(p=>({...p,photos}))} /></F>
+        <F label="📸 Foto Bukti POSM"><PhotoUpload photos={form.photos} onChange={photos=>setForm(p=>({...p,photos}))} posms={form.posms||[]} /></F>
         <div style={{ display:"grid",gridTemplateColumns:"2fr 1fr",gap:10,marginTop:8 }}>
           <button onClick={save} disabled={syncing} style={{ ...btnGold,opacity:syncing?.7:1 }}>{syncing?"⏳ Menyimpan...":editId?"💾 Simpan":"✅ Tambah"}</button>
           <button onClick={closeForm} style={{ background:"#f3f4f6",color:"#6b7280",border:"none",borderRadius:12,padding:"14px",fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"'DM Sans',sans-serif" }}>Batal</button>
