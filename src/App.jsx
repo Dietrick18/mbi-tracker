@@ -214,10 +214,11 @@ async function uploadPhotoToDrive(photoBase64, fileName, mimeType) {
     }
 
     const formData = new FormData();
+    // Nama file: NamaOutlet_SalesRep_Tanggal
     formData.append('file', photoBase64);
     formData.append('upload_preset', CLOUDINARY_PRESET);
     formData.append('folder', 'MBI_POSM');
-    formData.append('public_id', fileName.replace(/\.[^/.]+$/, '') + '_' + Date.now());
+    formData.append('public_id', fileName.replace(/\.[^/.]+$/, ''));
 
     const res = await fetch(
       `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`,
@@ -236,12 +237,15 @@ async function uploadPhotoToDrive(photoBase64, fileName, mimeType) {
 }
 
 async function saveToSheets(data) {
-  // Upload photos first if any
   let photoUrl = '';
   if (data.photos && data.photos.length > 0) {
     const photo = data.photos[0];
     const mimeType = photo.url.split(';')[0].split(':')[1];
-    const fileName = photo.name || (data.outlet + '_' + data.salesRep + '_' + data.date + '.jpg');
+    // Nama file: NamaOutlet_SalesRep_Tanggal
+    const outletClean = (data.outlet||'Outlet').replace(/[^a-zA-Z0-9]/g,'');
+    const repClean = (data.salesRep||'Rep').split(' ')[0];
+    const dateClean = (data.date||new Date().toISOString().split('T')[0]).replace(/-/g,'');
+    const fileName = outletClean + '_' + repClean + '_' + dateClean + '.jpg';
     photoUrl = await uploadPhotoToDrive(photo.url, fileName, mimeType);
   }
   await postToSheets({ action:'add', ...data, photoUrl });
