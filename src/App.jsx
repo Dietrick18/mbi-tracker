@@ -6,10 +6,16 @@ import { useState, useRef, useEffect } from "react";
 const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyZ_j914rzGxWlWav1ofyAjdHvT8WinOWHBUnkaRuWdJCEpk2gRm5S5g7YADroHsq4rEA/exec";
 // ═══════════════════════════════════════════════════════════
 
-const BRANDS = ["Bintang","Heineken","Bintang Zero","Amstel","Tiger","Guinness"];
-const POSM_TYPES = ["Spanduk","Neon Box","Sticker","Cooler Branding","Meja/Kursi Branding","Banner Stand","Hanging Mobile"];
+const BRANDS = ["Kawan Senja"];
+const POSM_TYPES = ["DumBin","Poster Sticker A3","T-Shirt","Sunblind","Sticker Chiller","Tent Card Insertion"];
 const SALES_REPS = ["Andi Pratama","Budi Santoso","Citra Dewi","Deni Kurniawan","Eka Putri","Fajar Nugroho","Gita Rahayu","Hendra Wibowo"];
 const STATUS_OPTIONS = ["Terpasang","Belum Terpasang","Rusak / Perlu Ganti"];
+const CHANNELS = ["WHS (Wholesalers)","TOFT (Traditional Off Trade)","TONT (Traditional On Trade)"];
+const CHANNEL_CLASS = {
+  "WHS (Wholesalers)": ["WHS"],
+  "TOFT (Traditional Off Trade)": ["PND (P&D - Proviand en Drank)","TLS (Traditional Liquor Store)","CVS (ConVenience Stores)"],
+  "TONT (Traditional On Trade)": ["RNB (Resto N Bar)","STR (Standard Restaurant)","STB (Standard Bar/Pub/Cafe)"],
+};
 
 const brandColor = { Bintang:"#f59e0b",Heineken:"#16a34a","Bintang Zero":"#0ea5e9",Amstel:"#dc2626",Tiger:"#ea580c",Guinness:"#374151" };
 const brandBg    = { Bintang:"#fef3c7",Heineken:"#dcfce7","Bintang Zero":"#e0f2fe",Amstel:"#fee2e2",Tiger:"#ffedd5",Guinness:"#1f2937" };
@@ -19,7 +25,7 @@ const SM = {
   "Belum Terpasang":    { bg:"#fef9c3",text:"#a16207",dot:"#eab308",icon:"⏳" },
   "Rusak / Perlu Ganti":{ bg:"#fee2e2",text:"#b91c1c",dot:"#ef4444",icon:"⚠️" },
 };
-const emptyForm = { outlet:"",address:"",salesRep:"",brand:"",posm:"",status:"",notes:"",photos:[],date:new Date().toISOString().split("T")[0] };
+const emptyForm = { outlet:"",address:"",salesRep:"",brand:"",posm:"",status:"",notes:"",photos:[],date:new Date().toISOString().split("T")[0],channel:"",channelClass:"" };
 
 /* ── helpers ── */
 function Tag({ children, color="#78630a", bg="#f0e8d0" }) {
@@ -175,6 +181,9 @@ async function postToSheets(payload) {
     posm: payload.posm||"",
     status: payload.status||"",
     notes: payload.notes||"",
+    channel: payload.channel||"",
+    channelClass: payload.channelClass||"",
+    photoUrl: payload.photoUrl||"",
     rowIndex: payload.rowIndex||"",
     t: Date.now(),
   });
@@ -279,7 +288,7 @@ export default function App() {
   const closeForm = ()    => { setShowForm(false); setEditId(null); };
 
   const save = async () => {
-    if (!form.outlet||!form.address||!form.salesRep||!form.brand||!form.posm||!form.status) {
+    if (!form.outlet||!form.address||!form.salesRep||!form.brand||!form.posm||!form.status||!form.channel||!form.channelClass) {
       showToast("⚠️ Lengkapi semua field wajib (*)","error"); return;
     }
     setSyncing(true);
@@ -473,8 +482,10 @@ export default function App() {
                       </div>
                       <div style={{ display:"flex",gap:6,flexWrap:"wrap" }}>
                         <Tag>👤 {item.salesRep.split(" ")[0]}</Tag>
-                        <Tag color={brandTxt[item.brand]} bg={brandBg[item.brand]}>🍺 {item.brand}</Tag>
+                        <Tag color="#7c3aed" bg="#ede9fe">🍺 {item.brand}</Tag>
                         <Tag color="#0369a1" bg="#e0f2fe">📌 {item.posm}</Tag>
+                        {item.channel&&<Tag color="#0891b2" bg="#cffafe">📡 {item.channel.split(" ")[0]}</Tag>}
+                        {item.channelClass&&<Tag color="#059669" bg="#d1fae5">🏷️ {item.channelClass.split(" ")[0]}</Tag>}
                       </div>
                     </div>
                     {isOpen&&(
@@ -586,6 +597,20 @@ export default function App() {
             {BRANDS.map(o=><option key={o}>{o}</option>)}
           </select>
         </F>
+        <F label="Channel *">
+          <select value={form.channel} onChange={e=>setForm(p=>({...p,channel:e.target.value,channelClass:""}))} style={iStyle}>
+            <option value="">-- Pilih Channel --</option>
+            {CHANNELS.map(o=><option key={o}>{o}</option>)}
+          </select>
+        </F>
+        {form.channel && (
+          <F label="Class *">
+            <select value={form.channelClass} onChange={e=>setForm(p=>({...p,channelClass:e.target.value}))} style={iStyle}>
+              <option value="">-- Pilih Class --</option>
+              {(CHANNEL_CLASS[form.channel]||[]).map(o=><option key={o}>{o}</option>)}
+            </select>
+          </F>
+        )}
         <F label="Jenis POSM *">
           <select value={form.posm} onChange={e=>setForm(p=>({...p,posm:e.target.value}))} style={iStyle}>
             <option value="">-- Pilih POSM --</option>
