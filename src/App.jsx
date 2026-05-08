@@ -1,6 +1,12 @@
 import { useState, useRef, useEffect } from "react";
 
 const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyZ_j914rzGxWlWav1ofyAjdHvT8WinOWHBUnkaRuWdJCEpk2gRm5S5g7YADroHsq4rEA/exec";
+
+// ═══════════════════════════════════════════════════════════
+// 🔐 ROLE CONFIG
+// ADMIN_PASSWORD: ganti dengan password admin kamu
+const ADMIN_PASSWORD = "MBI@Admin2026";
+// ═══════════════════════════════════════════════════════════
 const CLOUDINARY_CLOUD  = "djsrywda5";
 const CLOUDINARY_PRESET = "mbi_posm";
 
@@ -287,8 +293,144 @@ async function deleteFromSheets(rowIndex) {
   await new Promise(r => setTimeout(r, 1500));
 }
 
+/* ── Login Screen ── */
+function LoginScreen({ onLogin }) {
+  const [role, setRole]     = useState("user");
+  const [pass, setPass]     = useState("");
+  const [error, setError]   = useState("");
+  const [showPass, setShowPass] = useState(false);
+
+  const handleLogin = () => {
+    if (role === "admin") {
+      if (pass === ADMIN_PASSWORD) {
+        onLogin("admin");
+      } else {
+        setError("❌ Password salah. Coba lagi.");
+        setTimeout(() => setError(""), 2500);
+      }
+    } else {
+      onLogin("user");
+    }
+  };
+
+  return (
+    <div style={{ maxWidth:430, margin:"0 auto", minHeight:"100dvh",
+      background:"linear-gradient(160deg,#25671E 0%,#1a4a14 60%,#0f2d0a 100%)",
+      display:"flex", flexDirection:"column", alignItems:"center",
+      justifyContent:"center", padding:"24px 20px",
+      fontFamily:"'DM Sans',sans-serif" }}>
+
+      <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Playfair+Display:wght@700;800;900&display=swap" rel="stylesheet" />
+
+      {/* Logo */}
+      <div style={{ width:80, height:80, borderRadius:"50%",
+        background:"linear-gradient(135deg,#F2B50B,#f0c940)",
+        display:"flex", alignItems:"center", justifyContent:"center",
+        fontSize:38, marginBottom:20,
+        boxShadow:"0 8px 32px rgba(242,181,11,.4)" }}>🍺</div>
+
+      <div style={{ fontFamily:"'Playfair Display',serif", fontSize:26,
+        fontWeight:900, color:"#F2B50B", marginBottom:4, textAlign:"center" }}>
+        MBI Activation Tracker
+      </div>
+      <div style={{ fontSize:12, color:"rgba(242,181,11,.6)",
+        letterSpacing:".08em", marginBottom:32, textAlign:"center" }}>
+        PT MULTI BINTANG INDONESIA
+      </div>
+
+      {/* Card */}
+      <div style={{ background:"#fff", borderRadius:20, padding:"24px 20px",
+        width:"100%", boxShadow:"0 20px 60px rgba(0,0,0,.3)" }}>
+
+        <div style={{ fontSize:14, fontWeight:700, color:"#14532d",
+          marginBottom:14, textAlign:"center" }}>
+          Masuk sebagai:
+        </div>
+
+        {/* Role selector */}
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:18 }}>
+          {[
+            { id:"user",  label:"👤 User",  sub:"Sales Rep / DSR" },
+            { id:"admin", label:"🔐 Admin", sub:"PIC Area / Manager" },
+          ].map(r => (
+            <button key={r.id} onClick={()=>{ setRole(r.id); setPass(""); setError(""); }}
+              style={{
+                background: role===r.id ? "#dcfce7" : "#f9fafb",
+                border: `2px solid ${role===r.id ? "#22c55e" : "#e5e7eb"}`,
+                borderRadius:12, padding:"14px 10px", cursor:"pointer",
+                fontFamily:"'DM Sans',sans-serif", transition:"all .15s",
+                textAlign:"center",
+              }}>
+              <div style={{ fontSize:18, marginBottom:3 }}>{r.label.split(" ")[0]}</div>
+              <div style={{ fontSize:13, fontWeight:700,
+                color: role===r.id ? "#15803d" : "#374151" }}>{r.label.split(" ").slice(1).join(" ")}</div>
+              <div style={{ fontSize:10, color:"#6b7280", marginTop:2 }}>{r.sub}</div>
+            </button>
+          ))}
+        </div>
+
+        {/* Admin password field */}
+        {role==="admin"&&(
+          <div style={{ marginBottom:16 }}>
+            <label style={{ fontSize:11, fontWeight:700, color:"#14532d",
+              marginBottom:5, display:"block", letterSpacing:".05em",
+              textTransform:"uppercase" }}>
+              Password Admin
+            </label>
+            <div style={{ position:"relative" }}>
+              <input
+                type={showPass?"text":"password"}
+                value={pass}
+                onChange={e=>{ setPass(e.target.value); setError(""); }}
+                onKeyDown={e=>e.key==="Enter"&&handleLogin()}
+                placeholder="Masukkan password admin"
+                style={{ width:"100%", padding:"12px 44px 12px 14px",
+                  borderRadius:12, border:`1.5px solid ${error?"#ef4444":"#bbf7d0"}`,
+                  fontSize:15, fontFamily:"'DM Sans',sans-serif",
+                  background:"#f0fdf4", outline:"none", boxSizing:"border-box" }}
+              />
+              <button onClick={()=>setShowPass(!showPass)}
+                style={{ position:"absolute", right:12, top:"50%",
+                  transform:"translateY(-50%)", background:"none", border:"none",
+                  cursor:"pointer", fontSize:18 }}>
+                {showPass?"🙈":"👁️"}
+              </button>
+            </div>
+            {error&&<div style={{ color:"#ef4444", fontSize:12,
+              fontWeight:700, marginTop:6 }}>{error}</div>}
+          </div>
+        )}
+
+        {/* Info box for user */}
+        {role==="user"&&(
+          <div style={{ background:"#f0fdf4", border:"1px solid #bbf7d0",
+            borderRadius:10, padding:"10px 14px", marginBottom:16,
+            fontSize:12, color:"#14532d" }}>
+            <div style={{ fontWeight:700, marginBottom:2 }}>ℹ️ Akses User (DSR)</div>
+            <div style={{ color:"#16a34a" }}>Bisa input & lihat data aktivasi. Tidak bisa hapus data.</div>
+          </div>
+        )}
+
+        <button onClick={handleLogin}
+          style={{ background:"linear-gradient(135deg,#25671E,#48A111)",
+            color:"#fff", border:"none", borderRadius:12, padding:"14px",
+            fontWeight:800, fontSize:15, cursor:"pointer",
+            width:"100%", fontFamily:"'DM Sans',sans-serif" }}>
+          {role==="admin"?"🔐 Masuk sebagai Admin":"👤 Masuk sebagai User"}
+        </button>
+      </div>
+
+      <div style={{ fontSize:11, color:"rgba(242,181,11,.4)",
+        marginTop:20, textAlign:"center" }}>
+        v1.0 · MBI Activation Tracker
+      </div>
+    </div>
+  );
+}
+
 /* ════ MAIN APP ════ */
 export default function App() {
+  const [role, setRole] = useState(null);
   const [tab, setTab]         = useState("dashboard");
   const [activations, setActivations] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -405,6 +547,10 @@ export default function App() {
   };
 
   const TABS=[{id:"dashboard",icon:"📊",label:"Dashboard"},{id:"aktivasi",icon:"📋",label:"Aktivasi"},{id:"laporan",icon:"📤",label:"Laporan"}];
+  const isAdmin = role === "admin";
+
+  // Show login screen if not logged in
+  if (!role) return <LoginScreen onLogin={setRole} />;
 
   return (
     <div style={{ maxWidth:430,margin:"0 auto",minHeight:"100dvh",background:"#f0fdf4",fontFamily:"'DM Sans',sans-serif",color:"#1a2e0f",display:"flex",flexDirection:"column" }}>
@@ -425,12 +571,22 @@ export default function App() {
             </div>
           </div>
           <div style={{ display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4 }}>
-            <div style={{ background:"rgba(242,181,11,.15)",border:"1px solid rgba(242,181,11,.4)",borderRadius:20,padding:"4px 11px",fontSize:11,fontWeight:700,color:"#F2B50B" }}>{total} outlet</div>
-            {isConfigured()&&(
-              <button onClick={loadFromSheets} disabled={loading} style={{ background:"transparent",border:"1px solid rgba(72,161,17,.4)",borderRadius:20,padding:"3px 10px",fontSize:10,color:"#86efac",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",fontWeight:600 }}>
-                {loading?"⏳":"🔄"} Refresh
+            <div style={{ display:"flex",alignItems:"center",gap:6 }}>
+              <div style={{ background:"rgba(242,181,11,.15)",border:"1px solid rgba(242,181,11,.4)",borderRadius:20,padding:"4px 11px",fontSize:11,fontWeight:700,color:"#F2B50B" }}>{total} outlet</div>
+              <div style={{ background: isAdmin?"rgba(239,68,68,.2)":"rgba(72,161,17,.2)", border:`1px solid ${isAdmin?"rgba(239,68,68,.5)":"rgba(72,161,17,.5)"}`, borderRadius:20,padding:"4px 10px",fontSize:10,fontWeight:700,color:isAdmin?"#fca5a5":"#86efac" }}>
+                {isAdmin?"🔐 Admin":"👤 User"}
+              </div>
+            </div>
+            <div style={{ display:"flex",gap:4 }}>
+              {isConfigured()&&(
+                <button onClick={loadFromSheets} disabled={loading} style={{ background:"transparent",border:"1px solid rgba(72,161,17,.4)",borderRadius:20,padding:"3px 10px",fontSize:10,color:"#86efac",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",fontWeight:600 }}>
+                  {loading?"⏳":"🔄"} Refresh
+                </button>
+              )}
+              <button onClick={()=>setRole(null)} style={{ background:"transparent",border:"1px solid rgba(239,68,68,.4)",borderRadius:20,padding:"3px 10px",fontSize:10,color:"#fca5a5",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",fontWeight:600 }}>
+                Keluar
               </button>
-            )}
+            </div>
           </div>
         </div>
         {isConfigured()&&lastSync&&(
@@ -585,9 +741,11 @@ export default function App() {
                             </div>
                           )}
 
-                          <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:8 }}>
+                          <div style={{ display:"grid",gridTemplateColumns:isAdmin?"1fr 1fr":"1fr",gap:8 }}>
                             <button onClick={()=>openEdit(item)} style={{ ...btnGreen,padding:"11px" }}>✏️ Edit</button>
-                            <button onClick={()=>del(item.id)} style={{ background:"#fee2e2",color:"#b91c1c",border:"none",borderRadius:12,padding:"11px",fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"'DM Sans',sans-serif" }}>🗑️ Hapus</button>
+                            {isAdmin&&(
+                              <button onClick={()=>del(item.id)} style={{ background:"#fee2e2",color:"#b91c1c",border:"none",borderRadius:12,padding:"11px",fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"'DM Sans',sans-serif" }}>🗑️ Hapus</button>
+                            )}
                           </div>
                         </div>
                       )}
