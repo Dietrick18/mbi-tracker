@@ -41,7 +41,7 @@ const SM = {
   "Belum Terpasang":    { bg:"#fef9c3",text:"#a16207",dot:"#eab308",icon:"⏳" },
   "Rusak / Perlu Ganti":{ bg:"#fee2e2",text:"#b91c1c",dot:"#ef4444",icon:"⚠️" },
 };
-const emptyForm = { outlet:"",address:"",salesRep:"",brand:"",posms:[],status:"",notes:"",photos:[],date:new Date().toISOString().split("T")[0],channel:"",channelClass:"" };
+const emptyForm = { outlet:"",address:"",salesRep:"",brand:"",posms:[],status:"",notes:"",photos:[],date:new Date().toISOString().split("T")[0],channel:"",channelClass:"",lat:"",lng:"",geoStatus:"",disId:"" };
 
 /* ── helpers ── */
 function Tag({ children, color="#78630a", bg="#f0e8d0" }) {
@@ -214,7 +214,10 @@ async function postToSheets(payload) {
     notes: payload.notes||"",
     channel: payload.channel||"",
     channelClass: payload.channelClass||"",
+    disId: payload.disId||"",
     photoUrl: payload.photoUrl||"",
+    lat: payload.lat||"",
+    lng: payload.lng||"",
     rowIndex: payload.rowIndex||"",
     t: Date.now(),
   });
@@ -389,13 +392,39 @@ export default function App() {
     setLoading(false);
   };
 
-  const openAdd  = ()     => { setForm(emptyForm); setEditId(null); setShowForm(true); };
+  const openAdd = () => {
+    setForm(emptyForm);
+    setEditId(null);
+    setShowForm(true);
+    // Auto-ambil GPS saat form dibuka
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setForm(f => ({
+            ...f,
+            lat: pos.coords.latitude.toFixed(6),
+            lng: pos.coords.longitude.toFixed(6),
+            geoStatus: "✅ GPS berhasil",
+          }));
+        },
+        (err) => {
+          setForm(f => ({ ...f, geoStatus: "⚠️ GPS tidak tersedia" }));
+        },
+        { timeout: 8000, maximumAge: 0, enableHighAccuracy: true }
+      );
+    } else {
+      setForm(f => ({ ...f, geoStatus: "⚠️ Browser tidak support GPS" }));
+    }
+  };
   const openEdit = item   => { setForm({...item}); setEditId(item.id); setShowForm(true); };
   const closeForm = ()    => { setShowForm(false); setEditId(null); };
 
   const save = async () => {
-    if (!form.outlet||!form.address||!form.salesRep||!form.brand||!(form.posms&&form.posms.length>0)||!form.status||!form.channel||!form.channelClass) {
+    if (!form.outlet||!form.address||!form.disId||!form.salesRep||!form.brand||!(form.posms&&form.posms.length>0)||!form.status||!form.channel||!form.channelClass) {
       showToast("⚠️ Lengkapi semua field wajib (*)","error"); return;
+    }
+    if (!form.photos||form.photos.length===0) {
+      showToast("📸 Foto bukti POSM wajib diupload!","error"); return;
     }
     setSyncing(true);
     const photoCount = form.photos?.length || 0;
@@ -601,6 +630,8 @@ export default function App() {
                         ))}
                         {item.channel&&<Tag color="#0891b2" bg="#cffafe">📡 {item.channel.split(" ")[0]}</Tag>}
                         {item.channelClass&&<Tag color="#059669" bg="#d1fae5">🏷️ {item.channelClass.split(" ")[0]}</Tag>}
+                        {item.disId&&<Tag color="#be185d" bg="#fce7f3">🏪 {item.disId}</Tag>}
+                        {item.lat&&<Tag color="#7c3aed" bg="#ede9fe">📍 GPS</Tag>}
                       </div>
                     </div>
                     {isOpen&&(
@@ -609,6 +640,28 @@ export default function App() {
                           <span>📅 {item.date}</span>
                           {item.notes&&<span style={{ fontStyle:"italic" }}>💬 {item.notes}</span>}
                         </div>
+                        {item.disId&&(
+                          <div style={{ background:"#fce7f3",borderRadius:10,padding:"8px 12px",marginBottom:10,display:"flex",alignItems:"center",gap:8 }}>
+                            <span style={{ fontSize:16 }}>🏪</span>
+                            <div style={{ flex:1 }}>
+                              <div style={{ fontSize:11,fontWeight:700,color:"#be185d" }}>ID DIS Outlet</div>
+                              <div style={{ fontSize:13,fontWeight:800,color:"#9d174d" }}>{item.disId}</div>
+                            </div>
+                          </div>
+                        )}
+                        {item.lat&&item.lng&&(
+                          <div style={{ background:"#ede9fe",borderRadius:10,padding:"8px 12px",marginBottom:10,display:"flex",alignItems:"center",gap:8 }}>
+                            <span style={{ fontSize:16 }}>📍</span>
+                            <div style={{ flex:1 }}>
+                              <div style={{ fontSize:11,fontWeight:700,color:"#7c3aed" }}>GPS Koordinat</div>
+                              <div style={{ fontSize:11,color:"#6b7280" }}>{item.lat}, {item.lng}</div>
+                            </div>
+                            <a href={`https://www.google.com/maps?q=${item.lat},${item.lng}`} target="_blank" rel="noreferrer"
+                              style={{ background:"#7c3aed",color:"#fff",borderRadius:8,padding:"5px 10px",fontSize:11,fontWeight:700,textDecoration:"none" }}>
+                              🗺️ Maps
+                            </a>
+                          </div>
+                        )}
                         {item.photos?.length>0&&(
                           <div style={{ display:"flex",flexDirection:"column",gap:6,marginBottom:12 }}>
                             {item.photos.map((p,i)=>(
@@ -705,6 +758,46 @@ export default function App() {
       <Sheet open={showForm} onClose={closeForm} title={editId?"✏️ Edit Aktivasi":"➕ Tambah Aktivasi"}>
         <F label="Nama Outlet *"><input value={form.outlet} onChange={e=>setForm(p=>({...p,outlet:e.target.value}))} placeholder="cth: Warung Bu Sari" style={iStyle} /></F>
         <F label="Alamat Outlet *"><input value={form.address} onChange={e=>setForm(p=>({...p,address:e.target.value}))} placeholder="cth: Jl. Merdeka No.5, Bandung" style={iStyle} /></F>
+        <F label="ID DIS Outlet *">
+          <input
+            value={form.disId}
+            onChange={e=>setForm(p=>({...p,disId:e.target.value.toUpperCase()}))}
+            placeholder="cth: 10001 atau DIS-BALI-001"
+            style={iStyle}
+            inputMode="text"
+            autoCapitalize="characters"
+          />
+          <div style={{ fontSize:11,color:"#a07820",marginTop:5,fontStyle:"italic" }}>
+            💡 Masukkan ID DIS sesuai database outlet. Jika belum ada, isi dengan kode sementara.
+          </div>
+        </F>
+        {/* GPS Status */}
+        <div style={{ background: form.lat ? "#dcfce7" : "#fef9c3", border:`1.5px solid ${form.lat?"#22c55e":"#eab308"}`, borderRadius:12, padding:"10px 14px", display:"flex", alignItems:"center", gap:10, marginBottom:14 }}>
+          <span style={{ fontSize:20 }}>📍</span>
+          <div style={{ flex:1 }}>
+            <div style={{ fontWeight:700, fontSize:12, color: form.lat ? "#15803d" : "#a16207" }}>
+              {form.lat ? `GPS: ${form.lat}, ${form.lng}` : "Mengambil lokasi GPS..."}
+            </div>
+            <div style={{ fontSize:11, color:"#6b7280", marginTop:2 }}>
+              {form.geoStatus || "Pastikan GPS HP aktif"}
+            </div>
+          </div>
+          {!form.lat && (
+            <button onClick={()=>{
+              if (navigator.geolocation) {
+                setForm(p=>({...p,geoStatus:"⏳ Mengambil GPS..."}));
+                navigator.geolocation.getCurrentPosition(
+                  pos => setForm(p=>({...p, lat:pos.coords.latitude.toFixed(6), lng:pos.coords.longitude.toFixed(6), geoStatus:"✅ GPS berhasil"})),
+                  () => setForm(p=>({...p, geoStatus:"⚠️ GPS gagal, coba lagi"})),
+                  { timeout:8000, maximumAge:0, enableHighAccuracy:true }
+                );
+              }
+            }} style={{ background:"#f0c940", border:"none", borderRadius:8, padding:"6px 12px", fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"'DM Sans',sans-serif" }}>
+              🔄 Retry
+            </button>
+          )}
+        </div>
+
         <F label="Sales Representative *">
           <select value={form.salesRep} onChange={e=>setForm(p=>({...p,salesRep:e.target.value}))} style={iStyle}>
             <option value="">-- Pilih Sales Rep --</option>
@@ -777,7 +870,7 @@ export default function App() {
         </F>
         <F label="Tanggal"><input type="date" value={form.date} onChange={e=>setForm(p=>({...p,date:e.target.value}))} style={iStyle} /></F>
         <F label="Catatan"><textarea value={form.notes} onChange={e=>setForm(p=>({...p,notes:e.target.value}))} placeholder="cth: Outlet kooperatif, lokasi strategis" rows={3} style={{ ...iStyle,resize:"none" }} /></F>
-        <F label="📸 Foto Bukti POSM"><PhotoUpload photos={form.photos} onChange={photos=>setForm(p=>({...p,photos}))} posms={form.posms||[]} /></F>
+        <F label="📸 Foto Bukti POSM *"><PhotoUpload photos={form.photos} onChange={photos=>setForm(p=>({...p,photos}))} posms={form.posms||[]} /></F>
         <div style={{ display:"grid",gridTemplateColumns:"2fr 1fr",gap:10,marginTop:8 }}>
           <button onClick={save} disabled={syncing} style={{ ...btnGold,opacity:syncing?.7:1 }}>{syncing?"⏳ Menyimpan...":editId?"💾 Simpan":"✅ Tambah"}</button>
           <button onClick={closeForm} style={{ background:"#f3f4f6",color:"#6b7280",border:"none",borderRadius:12,padding:"14px",fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"'DM Sans',sans-serif" }}>Batal</button>
