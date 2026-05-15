@@ -244,7 +244,7 @@ async function fetchFromSheets() {
     salesRep:r[3]||"", brand:r[4]||"", posm:r[5]||"",
     status:r[6]||"", notes:r[7]||"", channel:r[8]||"",
     channelClass:r[9]||"", disId:r[10]||"", mbisp:r[11]||"",
-    photoUrl:r[12]||"", lat:r[13]||"", lng:r[14]||"",
+    photoUrl:String(r[12]||""), lat:String(r[13]||""), lng:String(r[14]||""),
     posms: r[5] ? r[5].split(", ") : [], photos:[], rowIndex:i+2,
   }));
 }
@@ -748,7 +748,7 @@ export default function App() {
                               ))}
                             </div>
                           )}
-                          {item.photoUrl&&(
+                          {item.photoUrl&&typeof item.photoUrl==="string"&&(
                             <div style={{ fontSize:11,color:"#16a34a",marginBottom:10 }}>
                               📸 <a href={item.photoUrl.split(" | ")[0]} target="_blank" rel="noreferrer" style={{ color:"#16a34a",fontWeight:700 }}>Lihat Foto di Cloud</a>
                             </div>
