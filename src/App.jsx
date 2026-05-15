@@ -243,8 +243,8 @@ async function fetchFromSheets() {
     id:i+1, date:r[0]||"", outlet:r[1]||"", address:r[2]||"",
     salesRep:r[3]||"", brand:r[4]||"", posm:r[5]||"",
     status:r[6]||"", notes:r[7]||"", channel:r[8]||"",
-    channelClass:r[9]||"", disId:r[10]||"", photoUrl:r[11]||"",
-    lat:r[12]||"", lng:r[13]||"",
+    channelClass:r[9]||"", disId:r[10]||"", mbisp:r[11]||"",
+    photoUrl:r[12]||"", lat:r[13]||"", lng:r[14]||"",
     posms: r[5] ? r[5].split(", ") : [], photos:[], rowIndex:i+2,
   }));
 }
@@ -513,13 +513,14 @@ export default function App() {
   const del = async id => {
     if (!window.confirm("Hapus data ini?")) return;
     setSyncing(true);
+    // Optimistic update - hapus dari UI dulu, baru sync ke sheets
+    setActivations(a=>a.filter(x=>x.id!==id));
+    setExpandId(null);
+    showToast("🗑️ Data berhasil dihapus");
     try {
       const item = activations.find(x=>x.id===id);
-      if (isConfigured()) await deleteFromSheets(item.rowIndex);
-      setActivations(a=>a.filter(x=>x.id!==id));
-      showToast("🗑️ Data berhasil dihapus");
-      if (isConfigured()) setTimeout(()=>loadFromSheets(),1500);
-    } catch(e) { showToast("❌ Gagal hapus.","error"); }
+      if (isConfigured() && item) await deleteFromSheets(item.rowIndex);
+    } catch(e) { showToast("⚠️ Sync hapus gagal, refresh manual","error"); }
     setSyncing(false);
   };
 
