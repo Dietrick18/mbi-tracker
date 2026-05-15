@@ -769,7 +769,7 @@ export default function App() {
           </div>
         )}
 
-        {/* ── LAPORAN ── */
+        {/* ── LAPORAN ── */}
         {tab==="laporan"&&(
           <div style={{ padding:"14px 14px",display:"flex",flexDirection:"column",gap:12 }}>
             <div style={{ background:"#fff",borderRadius:16,padding:"18px",border:"1px solid #bbf7d0",boxShadow:"0 2px 10px #0000000a" }}>
