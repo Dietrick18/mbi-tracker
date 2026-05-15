@@ -31,6 +31,11 @@ const CHANNEL_CLASS  = {
   "TONT (Traditional On Trade)": ["RNB (Resto N Bar)","STR (Standard Restaurant)","STB (Standard Bar/Pub/Cafe)"],
 };
 
+const MBISP_AREAS = [
+  "BALI 1","BALI 2","BALI 3","BALI 4","BALI 5",
+  "BALI 6","BALI 7","BALI 8","BALI 10",
+];
+
 const brandBg  = { "Kawan Senja":"#dcfce7" };
 const brandTxt = { "Kawan Senja":"#14532d" };
 const brandClr = { "Kawan Senja":"#16a34a" };
@@ -42,7 +47,7 @@ const SM = {
 };
 
 const emptyForm = {
-  outlet:"", address:"", disId:"", salesRep:"", brand:"",
+  outlet:"", address:"", disId:"", mbisp:"", salesRep:"", brand:"",
   posms:[], status:"", notes:"", photos:[],
   date:new Date().toISOString().split("T")[0],
   channel:"", channelClass:"", lat:"", lng:"", geoStatus:"",
@@ -258,6 +263,7 @@ async function postToSheets(payload) {
     channel:      payload.channel||"",
     channelClass: payload.channelClass||"",
     disId:        payload.disId||"",
+    mbisp:        payload.mbisp||"",
     photoUrl:     payload.photoUrl||"",
     lat:          payload.lat||"",
     lng:          payload.lng||"",
@@ -478,7 +484,7 @@ export default function App() {
   const closeForm = () => { setShowForm(false); setEditId(null); };
 
   const save = async () => {
-    if (!form.outlet||!form.address||!form.disId||!form.salesRep||!form.brand||
+    if (!form.outlet||!form.address||!form.disId||!form.mbisp||!form.salesRep||!form.brand||
         !(form.posms&&form.posms.length>0)||!form.status||!form.channel||!form.channelClass) {
       showToast("⚠️ Lengkapi semua field wajib (*)","error"); return;
     }
@@ -547,15 +553,20 @@ export default function App() {
   };
 
   const TABS=[{id:"dashboard",icon:"📊",label:"Dashboard"},{id:"aktivasi",icon:"📋",label:"Aktivasi"},{id:"laporan",icon:"📤",label:"Laporan"}];
-  const isAdmin = role === "admin";
 
   // Show login screen if not logged in
   if (!role) return <LoginScreen onLogin={setRole} />;
 
+  const isAdmin = role === "admin";
+
   return (
     <div style={{ maxWidth:430,margin:"0 auto",minHeight:"100dvh",background:"#f0fdf4",fontFamily:"'DM Sans',sans-serif",color:"#1a2e0f",display:"flex",flexDirection:"column" }}>
-      <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Playfair+Display:wght@700;800;900&display=swap" rel="stylesheet" />
-      <style>{`*{box-sizing:border-box;-webkit-font-smoothing:antialiased}input,select,textarea{font-size:16px!important}button{-webkit-tap-highlight-color:transparent}`}</style>
+      <style dangerouslySetInnerHTML={{__html:`
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Playfair+Display:wght@700;800;900&display=swap');
+        *{box-sizing:border-box;-webkit-font-smoothing:antialiased}
+        input,select,textarea{font-size:16px!important}
+        button{-webkit-tap-highlight-color:transparent}
+      `}} />
 
       <Toast msg={toast.msg} type={toast.type} />
 
@@ -682,7 +693,8 @@ export default function App() {
                           <Tag color="#14532d" bg="#dcfce7">👤 {item.salesRep.replace("DSR BALI ","#")}</Tag>
                           {posmList.map((p,i)=><Tag key={i} color="#0369a1" bg="#e0f2fe">📌 {p}</Tag>)}
                           {item.channel&&<Tag color="#0891b2" bg="#cffafe">📡 {item.channel.split(" ")[0]}</Tag>}
-                          {item.lat&&<Tag color="#7c3aed" bg="#ede9fe">📍 GPS</Tag>}
+                          {item.mbisp&&<Tag color="#be185d" bg="#fce7f3">🗺️ {item.mbisp}</Tag>}
+                        {item.lat&&<Tag color="#7c3aed" bg="#ede9fe">📍 GPS</Tag>}
                         </div>
                       </div>
                       {isOpen&&(
@@ -757,7 +769,7 @@ export default function App() {
           </div>
         )}
 
-        {/* ── LAPORAN ── */}
+        {/* ── LAPORAN ── */
         {tab==="laporan"&&(
           <div style={{ padding:"14px 14px",display:"flex",flexDirection:"column",gap:12 }}>
             <div style={{ background:"#fff",borderRadius:16,padding:"18px",border:"1px solid #bbf7d0",boxShadow:"0 2px 10px #0000000a" }}>
@@ -816,9 +828,7 @@ export default function App() {
       <Sheet open={showForm} onClose={closeForm} title={editId?"✏️ Edit Aktivasi":"➕ Tambah Aktivasi"}>
 
         <F label="Nama Outlet *"><input value={form.outlet} onChange={e=>setForm(p=>({...p,outlet:e.target.value}))} placeholder="cth: Warung Bu Sari" style={iStyle} /></F>
-        <F label="Alamat Outlet *"><input value={form.address} onChange={e=>setForm(p=>({...p,address:e.target.value}))} placeholder="cth: Jl. Merdeka No.5, Denpasar" style={iStyle} /></F>
 
-        {/* ID DIS */}
         <F label="ID DIS Outlet *">
           <input value={form.disId} onChange={e=>setForm(p=>({...p,disId:e.target.value.toUpperCase()}))}
             placeholder="cth: 10001" style={iStyle} inputMode="text" autoCapitalize="characters" />
@@ -826,6 +836,15 @@ export default function App() {
             💡 Masukkan ID DIS sesuai database. Jika belum ada, isi kode sementara.
           </div>
         </F>
+
+        <F label="MBISP *">
+          <select value={form.mbisp} onChange={e=>setForm(p=>({...p,mbisp:e.target.value}))} style={iStyle}>
+            <option value="">-- Pilih MBISP --</option>
+            {MBISP_AREAS.map(o=><option key={o}>{o}</option>)}
+          </select>
+        </F>
+
+        <F label="Alamat Outlet *"><input value={form.address} onChange={e=>setForm(p=>({...p,address:e.target.value}))} placeholder="cth: Jl. Merdeka No.5, Denpasar" style={iStyle} /></F>
 
         {/* GPS Status */}
         <div style={{ background:form.lat?"#dcfce7":"#fef9c3",border:`1.5px solid ${form.lat?"#22c55e":"#eab308"}`,borderRadius:12,padding:"10px 14px",display:"flex",alignItems:"center",gap:10,marginBottom:14 }}>
