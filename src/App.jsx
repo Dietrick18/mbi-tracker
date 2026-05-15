@@ -31,6 +31,8 @@ const CHANNEL_CLASS  = {
   "TONT (Traditional On Trade)": ["RNB (Resto N Bar)","STR (Standard Restaurant)","STB (Standard Bar/Pub/Cafe)"],
 };
 
+const MBISP_AREAS = ["BALI 1","BALI 2","BALI 3","BALI 4","BALI 5","BALI 6","BALI 7","BALI 8","BALI 10"];
+
 const brandBg  = { "Kawan Senja":"#dcfce7" };
 const brandTxt = { "Kawan Senja":"#14532d" };
 const brandClr = { "Kawan Senja":"#16a34a" };
@@ -42,7 +44,7 @@ const SM = {
 };
 
 const emptyForm = {
-  outlet:"", address:"", disId:"", salesRep:"", brand:"",
+  outlet:"", address:"", disId:"", mbisp:"", salesRep:"", brand:"",
   posms:[], status:"", notes:"", photos:[],
   date:new Date().toISOString().split("T")[0],
   channel:"", channelClass:"", lat:"", lng:"", geoStatus:"",
@@ -238,8 +240,8 @@ async function fetchFromSheets() {
     id:i+1, date:r[0]||"", outlet:r[1]||"", address:r[2]||"",
     salesRep:r[3]||"", brand:r[4]||"", posm:r[5]||"",
     status:r[6]||"", notes:r[7]||"", channel:r[8]||"",
-    channelClass:r[9]||"", disId:r[10]||"", photoUrl:r[11]||"",
-    lat:r[12]||"", lng:r[13]||"",
+    channelClass:r[9]||"", disId:r[10]||"", mbisp:r[11]||"",
+    photoUrl:r[12]||"", lat:r[13]||"", lng:r[14]||"",
     posms: r[5] ? r[5].split(", ") : [], photos:[], rowIndex:i+2,
   }));
 }
@@ -258,6 +260,7 @@ async function postToSheets(payload) {
     channel:      payload.channel||"",
     channelClass: payload.channelClass||"",
     disId:        payload.disId||"",
+    mbisp:        payload.mbisp||"",
     photoUrl:     payload.photoUrl||"",
     lat:          payload.lat||"",
     lng:          payload.lng||"",
@@ -478,7 +481,7 @@ export default function App() {
   const closeForm = () => { setShowForm(false); setEditId(null); };
 
   const save = async () => {
-    if (!form.outlet||!form.address||!form.disId||!form.salesRep||!form.brand||
+    if (!form.outlet||!form.address||!form.disId||!form.mbisp||!form.salesRep||!form.brand||
         !(form.posms&&form.posms.length>0)||!form.status||!form.channel||!form.channelClass) {
       showToast("⚠️ Lengkapi semua field wajib (*)","error"); return;
     }
@@ -507,13 +510,13 @@ export default function App() {
   const del = async id => {
     if (!window.confirm("Hapus data ini?")) return;
     setSyncing(true);
+    const item = activations.find(x=>x.id===id);
+    setActivations(a=>a.filter(x=>x.id!==id));
+    setExpandId(null);
+    showToast("🗑️ Data berhasil dihapus");
     try {
-      const item = activations.find(x=>x.id===id);
-      if (isConfigured()) await deleteFromSheets(item.rowIndex);
-      setActivations(a=>a.filter(x=>x.id!==id));
-      showToast("🗑️ Data berhasil dihapus");
-      if (isConfigured()) setTimeout(()=>loadFromSheets(),1500);
-    } catch(e) { showToast("❌ Gagal hapus.","error"); }
+      if (isConfigured() && item) await deleteFromSheets(item.rowIndex);
+    } catch(e) { showToast("⚠️ Sync hapus gagal","error"); }
     setSyncing(false);
   };
 
@@ -681,6 +684,7 @@ export default function App() {
                         <div style={{ display:"flex",gap:5,flexWrap:"wrap" }}>
                           <Tag color="#14532d" bg="#dcfce7">👤 {item.salesRep.replace("DSR BALI ","#")}</Tag>
                           {posmList.map((p,i)=><Tag key={i} color="#0369a1" bg="#e0f2fe">📌 {p}</Tag>)}
+                          {item.mbisp&&<Tag color="#be185d" bg="#fce7f3">🗺️ {item.mbisp}</Tag>}
                           {item.channel&&<Tag color="#0891b2" bg="#cffafe">📡 {item.channel.split(" ")[0]}</Tag>}
                           {item.lat&&<Tag color="#7c3aed" bg="#ede9fe">📍 GPS</Tag>}
                         </div>
@@ -825,6 +829,13 @@ export default function App() {
           <div style={{ fontSize:11,color:"#16a34a",marginTop:5,fontStyle:"italic" }}>
             💡 Masukkan ID DIS sesuai database. Jika belum ada, isi kode sementara.
           </div>
+        </F>
+
+        <F label="MBISP *">
+          <select value={form.mbisp||""} onChange={e=>setForm(p=>({...p,mbisp:e.target.value}))} style={iStyle}>
+            <option value="">-- Pilih MBISP --</option>
+            {MBISP_AREAS.map(o=><option key={o}>{o}</option>)}
+          </select>
         </F>
 
         {/* GPS Status */}
