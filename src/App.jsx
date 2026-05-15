@@ -153,7 +153,7 @@ function Sheet({ open, onClose, title, children }) {
   );
 }
 
-const iStyle = { width:"100%",padding:"12px 14px",borderRadius:12,border:"1.5px solid #bbf7d0",fontSize:15,fontFamily:"'DM Sans',sans-serif",background:"#f0fdf4",outline:"none",boxSizing:"border-box",color:"#1a1200",WebkitAppearance:"none" };
+const iStyle = { width:'100%',padding:'12px 14px',borderRadius:12,border:'1.5px solid #bbf7d0',fontSize:15,fontFamily:'DM Sans,sans-serif',background:'#f0fdf4',outline:'none',boxSizing:'border-box',color:'#1a1200',WebkitAppearance:'none' };
 const lStyle = { fontSize:11,fontWeight:700,color:"#14532d",marginBottom:5,display:"block",letterSpacing:".05em",textTransform:"uppercase" };
 function F({ label, children }) { return <div style={{ marginBottom:14 }}><label style={lStyle}>{label}</label>{children}</div>; }
 const btnGreen = { background:"linear-gradient(135deg,#25671E,#48A111)",color:"#fff",border:"none",borderRadius:12,padding:"14px 20px",fontWeight:800,fontSize:15,cursor:"pointer",width:"100%",fontFamily:"'DM Sans',sans-serif",WebkitTapHighlightColor:"transparent" };
