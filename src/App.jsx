@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 
-const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyZ_j914rzGxWlWav1ofyAjdHvT8WinOWHBUnkaRuWdJCEpk2gRm5S5g7YADroHsq4rEA/exec";
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzLfur9C0wDhKFtAGkC-oZauSrz4taF4oAj_uRIoQ_p7qeLyxMzPay7215uy67xhgcPUA/exec";
 
 // ═══════════════════════════════════════════════════════════
 // 🔐 ROLE CONFIG
