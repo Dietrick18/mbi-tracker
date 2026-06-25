@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 
-const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzLfur9C0wDhKFtAGkC-oZauSrz4taF4oAj_uRIoQ_p7qeLyxMzPay7215uy67xhgcPUA/exec";
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyZ_j914rzGxWlWav1ofyAjdHvT8WinOWHBUnkaRuWdJCEpk2gRm5S5g7YADroHsq4rEA/exec";
 
 // ═══════════════════════════════════════════════════════════
 // 🔐 ROLE CONFIG
@@ -22,6 +22,10 @@ const SALES_REPS   = [
   "DSR BALI 40","DSR BALI 41","DSR BALI 42","DSR BALI 43",
   "DSR BALI 44","DSR BALI 46","DSR BALI 47","DSR BALI 48",
   "DSR BALI 51",
+  // ── DSR KS ──
+  "DSR KS 1","DSR KS 2","DSR KS 3","DSR KS 4","DSR KS 5",
+  "DSR KS 6","DSR KS 7","DSR KS 8","DSR KS 9","DSR KS 10",
+  "DSR KS 11","DSR KS 12","DSR KS 13","DSR KS 14","DSR KS 15",
 ];
 const STATUS_OPTIONS = ["Terpasang","Belum Terpasang","Rusak / Perlu Ganti"];
 const CHANNELS       = ["WHS (Wholesalers)","TOFT (Traditional Off Trade)","TONT (Traditional On Trade)"];
@@ -30,11 +34,6 @@ const CHANNEL_CLASS  = {
   "TOFT (Traditional Off Trade)":["PND (P&D - Proviand en Drank)","TLS (Traditional Liquor Store)","CVS (ConVenience Stores)"],
   "TONT (Traditional On Trade)": ["RNB (Resto N Bar)","STR (Standard Restaurant)","STB (Standard Bar/Pub/Cafe)"],
 };
-
-const MBISP_AREAS = [
-  "BALI 1","BALI 2","BALI 3","BALI 4","BALI 5",
-  "BALI 6","BALI 7","BALI 8","BALI 10",
-];
 
 const brandBg  = { "Kawan Senja":"#dcfce7" };
 const brandTxt = { "Kawan Senja":"#14532d" };
@@ -47,7 +46,7 @@ const SM = {
 };
 
 const emptyForm = {
-  outlet:"", address:"", disId:"", mbisp:"", salesRep:"", brand:"",
+  outlet:"", address:"", disId:"", salesRep:"", brand:"",
   posms:[], status:"", notes:"", photos:[],
   date:new Date().toISOString().split("T")[0],
   channel:"", channelClass:"", lat:"", lng:"", geoStatus:"",
@@ -243,8 +242,8 @@ async function fetchFromSheets() {
     id:i+1, date:r[0]||"", outlet:r[1]||"", address:r[2]||"",
     salesRep:r[3]||"", brand:r[4]||"", posm:r[5]||"",
     status:r[6]||"", notes:r[7]||"", channel:r[8]||"",
-    channelClass:r[9]||"", disId:r[10]||"", mbisp:r[11]||"",
-    photoUrl:String(r[12]||""), lat:String(r[13]||""), lng:String(r[14]||""),
+    channelClass:r[9]||"", disId:r[10]||"", photoUrl:r[11]||"",
+    lat:r[12]||"", lng:r[13]||"",
     posms: r[5] ? r[5].split(", ") : [], photos:[], rowIndex:i+2,
   }));
 }
@@ -263,7 +262,6 @@ async function postToSheets(payload) {
     channel:      payload.channel||"",
     channelClass: payload.channelClass||"",
     disId:        payload.disId||"",
-    mbisp:        payload.mbisp||"",
     photoUrl:     payload.photoUrl||"",
     lat:          payload.lat||"",
     lng:          payload.lng||"",
@@ -484,7 +482,7 @@ export default function App() {
   const closeForm = () => { setShowForm(false); setEditId(null); };
 
   const save = async () => {
-    if (!form.outlet||!form.address||!form.disId||!form.mbisp||!form.salesRep||!form.brand||
+    if (!form.outlet||!form.address||!form.disId||!form.salesRep||!form.brand||
         !(form.posms&&form.posms.length>0)||!form.status||!form.channel||!form.channelClass) {
       showToast("⚠️ Lengkapi semua field wajib (*)","error"); return;
     }
@@ -513,14 +511,13 @@ export default function App() {
   const del = async id => {
     if (!window.confirm("Hapus data ini?")) return;
     setSyncing(true);
-    // Optimistic update - hapus dari UI dulu, baru sync ke sheets
-    setActivations(a=>a.filter(x=>x.id!==id));
-    setExpandId(null);
-    showToast("🗑️ Data berhasil dihapus");
     try {
       const item = activations.find(x=>x.id===id);
-      if (isConfigured() && item) await deleteFromSheets(item.rowIndex);
-    } catch(e) { showToast("⚠️ Sync hapus gagal, refresh manual","error"); }
+      if (isConfigured()) await deleteFromSheets(item.rowIndex);
+      setActivations(a=>a.filter(x=>x.id!==id));
+      showToast("🗑️ Data berhasil dihapus");
+      if (isConfigured()) setTimeout(()=>loadFromSheets(),1500);
+    } catch(e) { showToast("❌ Gagal hapus.","error"); }
     setSyncing(false);
   };
 
@@ -554,20 +551,15 @@ export default function App() {
   };
 
   const TABS=[{id:"dashboard",icon:"📊",label:"Dashboard"},{id:"aktivasi",icon:"📋",label:"Aktivasi"},{id:"laporan",icon:"📤",label:"Laporan"}];
+  const isAdmin = role === "admin";
 
   // Show login screen if not logged in
   if (!role) return <LoginScreen onLogin={setRole} />;
 
-  const isAdmin = role === "admin";
-
   return (
     <div style={{ maxWidth:430,margin:"0 auto",minHeight:"100dvh",background:"#f0fdf4",fontFamily:"'DM Sans',sans-serif",color:"#1a2e0f",display:"flex",flexDirection:"column" }}>
-      <style dangerouslySetInnerHTML={{__html:`
-        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Playfair+Display:wght@700;800;900&display=swap');
-        *{box-sizing:border-box;-webkit-font-smoothing:antialiased}
-        input,select,textarea{font-size:16px!important}
-        button{-webkit-tap-highlight-color:transparent}
-      `}} />
+      <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Playfair+Display:wght@700;800;900&display=swap" rel="stylesheet" />
+      <style>{`*{box-sizing:border-box;-webkit-font-smoothing:antialiased}input,select,textarea{font-size:16px!important}button{-webkit-tap-highlight-color:transparent}`}</style>
 
       <Toast msg={toast.msg} type={toast.type} />
 
@@ -694,8 +686,7 @@ export default function App() {
                           <Tag color="#14532d" bg="#dcfce7">👤 {item.salesRep.replace("DSR BALI ","#")}</Tag>
                           {posmList.map((p,i)=><Tag key={i} color="#0369a1" bg="#e0f2fe">📌 {p}</Tag>)}
                           {item.channel&&<Tag color="#0891b2" bg="#cffafe">📡 {item.channel.split(" ")[0]}</Tag>}
-                          {item.mbisp&&<Tag color="#be185d" bg="#fce7f3">🗺️ {item.mbisp}</Tag>}
-                        {item.lat&&<Tag color="#7c3aed" bg="#ede9fe">📍 GPS</Tag>}
+                          {item.lat&&<Tag color="#7c3aed" bg="#ede9fe">📍 GPS</Tag>}
                         </div>
                       </div>
                       {isOpen&&(
@@ -748,7 +739,7 @@ export default function App() {
                               ))}
                             </div>
                           )}
-                          {item.photoUrl&&typeof item.photoUrl==="string"&&(
+                          {item.photoUrl&&(
                             <div style={{ fontSize:11,color:"#16a34a",marginBottom:10 }}>
                               📸 <a href={item.photoUrl.split(" | ")[0]} target="_blank" rel="noreferrer" style={{ color:"#16a34a",fontWeight:700 }}>Lihat Foto di Cloud</a>
                             </div>
@@ -829,7 +820,9 @@ export default function App() {
       <Sheet open={showForm} onClose={closeForm} title={editId?"✏️ Edit Aktivasi":"➕ Tambah Aktivasi"}>
 
         <F label="Nama Outlet *"><input value={form.outlet} onChange={e=>setForm(p=>({...p,outlet:e.target.value}))} placeholder="cth: Warung Bu Sari" style={iStyle} /></F>
+        <F label="Alamat Outlet *"><input value={form.address} onChange={e=>setForm(p=>({...p,address:e.target.value}))} placeholder="cth: Jl. Merdeka No.5, Denpasar" style={iStyle} /></F>
 
+        {/* ID DIS */}
         <F label="ID DIS Outlet *">
           <input value={form.disId} onChange={e=>setForm(p=>({...p,disId:e.target.value.toUpperCase()}))}
             placeholder="cth: 10001" style={iStyle} inputMode="text" autoCapitalize="characters" />
@@ -837,15 +830,6 @@ export default function App() {
             💡 Masukkan ID DIS sesuai database. Jika belum ada, isi kode sementara.
           </div>
         </F>
-
-        <F label="MBISP *">
-          <select value={form.mbisp} onChange={e=>setForm(p=>({...p,mbisp:e.target.value}))} style={iStyle}>
-            <option value="">-- Pilih MBISP --</option>
-            {MBISP_AREAS.map(o=><option key={o}>{o}</option>)}
-          </select>
-        </F>
-
-        <F label="Alamat Outlet *"><input value={form.address} onChange={e=>setForm(p=>({...p,address:e.target.value}))} placeholder="cth: Jl. Merdeka No.5, Denpasar" style={iStyle} /></F>
 
         {/* GPS Status */}
         <div style={{ background:form.lat?"#dcfce7":"#fef9c3",border:`1.5px solid ${form.lat?"#22c55e":"#eab308"}`,borderRadius:12,padding:"10px 14px",display:"flex",alignItems:"center",gap:10,marginBottom:14 }}>
